@@ -1,25 +1,17 @@
----
-title: "Reproducible Research:  Peer Assessment 1"
-author: "Joris Van den Bossche"
-date: "31 augustus 2016"
-output: 
-  html_document:
-    keep_md: true
----
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-knitr::opts_chunk$set(warning = FALSE)
-knitr::opts_chunk$set(message = FALSE)
-```
+# Reproducible Research:  Peer Assessment 1
+Joris Van den Bossche  
+31 augustus 2016  
+
 ## Loading and preprocessing the data
 We will begin by unzipping the data into a folder "raw_data". The file created, "activity.csv" can then be read using the read.csv function.
-```{r}
+
+```r
 unzip("activity.zip", exdir = "raw_data")
 activityData <- read.csv("raw_data/activity.csv", stringsAsFactors = FALSE)
-
 ```
 In this next step the columns are transformed to the correct formats. Then the data frame is transformed into a data table.
-```{r}
+
+```r
 activityData$date <- as.Date(activityData$date)
 library(data.table)
 activityData <- as.data.table(activityData)
@@ -28,11 +20,17 @@ activityData <- as.data.table(activityData)
 
 ## What is mean total number of steps taken per day?
 The sum of all steps taken, disregarding the NA's, is:
-```{r}
+
+```r
 sum(activityData$steps, na.rm = TRUE)
 ```
+
+```
+## [1] 570608
+```
 To make a histogram of the steps taken each day, first a new data table is created by grouping the activityData by date, the data table way.
-```{r}
+
+```r
 stepsByDay <- activityData[, 
                            .(sumDate = sum(steps, na.rm = TRUE)), 
                            by = "date"]
@@ -42,34 +40,70 @@ ggplot(data = stepsByDay) +
   labs(x = "Steps taken per day")
 ```
 
+![](PA1_template_files/figure-html/unnamed-chunk-4-1.png)<!-- -->
+
 The mean and median of steps taken each day are easily calculed using the new data table:
-```{r}
+
+```r
 mean(stepsByDay$sumDate)
+```
+
+```
+## [1] 9354.23
+```
+
+```r
 median(stepsByDay$sumDate)
+```
+
+```
+## [1] 10395
 ```
 
 ## What is the average daily activity pattern?
 Similarly to the previous plot, fist a new data table is constructed, grouping the data by interval this time, calculating the mean of the steps taken.
-```{r}
+
+```r
 stepsByInterval <- activityData[, 
                            .(intervalMean = mean(steps, na.rm = TRUE)), 
                            by = "interval"]
 ggplot(data = stepsByInterval) +
     geom_line(aes(interval, intervalMean))
 ```
+
+![](PA1_template_files/figure-html/unnamed-chunk-6-1.png)<!-- -->
 The interval with the largest average across all days is the following:
-```{r}
+
+```r
 stepsByInterval[intervalMean == max(stepsByInterval$intervalMean)]
+```
+
+```
+##    interval intervalMean
+## 1:      835     206.1698
 ```
 
 ## Imputing missing values
 The total amount of NA's in the data set can be found in the summary:
-```{r}
+
+```r
 summary(activityData)
+```
+
+```
+##      steps             date               interval     
+##  Min.   :  0.00   Min.   :2012-10-01   Min.   :   0.0  
+##  1st Qu.:  0.00   1st Qu.:2012-10-16   1st Qu.: 588.8  
+##  Median :  0.00   Median :2012-10-31   Median :1177.5  
+##  Mean   : 37.38   Mean   :2012-10-31   Mean   :1177.5  
+##  3rd Qu.: 12.00   3rd Qu.:2012-11-15   3rd Qu.:1766.2  
+##  Max.   :806.00   Max.   :2012-11-30   Max.   :2355.0  
+##  NA's   :2304
 ```
 Only the steps column contains NA's, 2304.  
 Imputing the NA's can be done using the interval mean. For this first the locations of the NA's are saved in a variable "toImpute". It may be useful to save these location for future use. Intervals of the missing steps data are fetched from the activitydata. Through an sapply action they are fetched from the stepsByInterval data table that was defined above. The result is then plugged into the original data table. 
-```{r}
+
+```r
 toImpute <- which(is.na(activityData$steps))
 NAstepsIntervals <- activityData[toImpute]$interval
 intervalMeans <- sapply(NAstepsIntervals, 
@@ -81,7 +115,8 @@ activityDataImputed <- copy(activityData)
 activityDataImputed[toImpute]$steps <- intervalMeans
 ```
 The new histogram for the steps taken each day then changes to the following graph:
-```{r}
+
+```r
 stepsByDayImputed <- activityDataImputed[, 
                            .(sumDate = sum(steps, na.rm = TRUE)), 
                            by = "date"]
@@ -89,37 +124,66 @@ ggplot(data = stepsByDayImputed) +
   geom_histogram(aes(sumDate)) +
   labs(x = "Steps taken per day", title = "Histogram imputed data")
 ```
+
+![](PA1_template_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
 The new mean and median of steps taken each day are changed to the following:
-```{r}
+
+```r
 c(originalMean = mean(stepsByDay$sumDate),
 imputedMean = mean(stepsByDayImputed$sumDate))
 ```
-```{r}
+
+```
+## originalMean  imputedMean 
+##      9354.23     10749.77
+```
+
+```r
 c(originalMedian = median(stepsByDay$sumDate),
 imputedMedian = median(stepsByDayImputed$sumDate))
 ```
+
+```
+## originalMedian  imputedMedian 
+##          10395          10641
+```
 Both mean and median have increased, meaning the missing data was mostly at very busy intervals with large average steps taken.  
 The effect on the total steps taken is the following:
-```{r}
+
+```r
 c(originalSum = sum(activityData$steps, na.rm = TRUE),
 imputedSum = sum(activityDataImputed$steps, na.rm = TRUE))
 ```
-```{r}
+
+```
+## originalSum  imputedSum 
+##      570608      655736
+```
+
+```r
 sum(activityDataImputed$steps, na.rm = TRUE) / sum(activityData$steps, na.rm = TRUE)
+```
+
+```
+## [1] 1.149188
 ```
 A 15% increase opposed to the original data!
 
 ## Are there differences in activity patterns between weekdays and weekends?
 To see a difference in weekdays or weekend days a new column is added to the data table. To avoid problems with language, the examples of 27-28th of august are used instead of the weekday strings. (For example, my Rstudio is in Dutch so "saturday" would not be recognized.)
-```{r}
+
+```r
 weekendDays <- weekdays(as.Date(c("2016-08-27","2016-08-28")))
 activityData[, weekend := weekdays(date) %in% weekendDays]
 ```
 Then a histogram can be made that can distinguish between a weekday or weekend day:
-```{r}
+
+```r
 stepsByInterval <- activityData[, 
                            .(intervalMean = mean(steps, na.rm = TRUE)), 
                            by = c("weekend", "interval")]
 ggplot(data = stepsByInterval) +
     geom_line(aes(interval, intervalMean, col = weekend))
 ```
+
+![](PA1_template_files/figure-html/unnamed-chunk-16-1.png)<!-- -->
