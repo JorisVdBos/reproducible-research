@@ -9,6 +9,14 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 ## Reading in the data
+First we will download the data from the website.
+```{r download}
+download.file("https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip", 
+              "data.zip")
+unzip("data.zip", exdir = "raw_data")
+file.remove("data.zip")
+```
+Then we can read in the data:
 
 
 ## R Markdown
